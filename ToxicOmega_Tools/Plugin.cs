@@ -33,6 +33,7 @@ namespace ToxicOmega_Tools
         internal static bool godmode;
         internal static bool nightVision;
         internal static bool noclip;
+        internal static int keydebounce = 0;
 
         void Awake()
         {

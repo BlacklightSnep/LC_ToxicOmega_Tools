@@ -46,6 +46,20 @@ namespace ToxicOmega_Tools.Patches
 
             NoClipHandler();
             DefogHandler();
+
+            // If you're the host, you get hotkey priveleges :)
+            if (Plugin.CheckPlayerIsHost(__instance))
+            {
+                // Hotkey presses were registering multiple times, so. Basic debounce.
+                if (Plugin.keydebounce <= 0)
+                {
+                    CheckHotKey();
+                }
+                else
+                {
+                    Plugin.keydebounce--;
+                }
+            }
         }
 
         private static void NoClipHandler()
@@ -114,6 +128,39 @@ namespace ToxicOmega_Tools.Patches
             //GameObject.Find("Environment")?.transform.Find("Lighting")?.Find("BrightDay")?.Find("Local Volumetric Fog")?.gameObject.SetActive(!Plugin.defog);
             //GameObject.Find("Environment")?.transform.Find("Lighting")?.Find("BrightDay")?.Find("Sun")?.Find("BlizzardSunAnimContainer")?.Find("Sky and Fog Global Volume")?.gameObject.SetActive(!Plugin.defog);
             //RenderSettings.fog = !Plugin.defog;
+        }
+
+        private static void CheckHotKey()
+        {
+            if (UnityInput.Current.GetKeyUp(KeyCode.F8))
+            {
+                Plugin.keydebounce = 30;
+                //Plugin.LogMessage("You pressed F8! That's neat.");
+                ToggleBreaker();
+            }
+        }
+        
+        private static void HandleHotKey(KeyCode keyCode)
+        {
+
+        }
+
+        private static void ToggleBreaker() {
+            BreakerBox breaker = FindObjectOfType<BreakerBox>();
+            if (breaker != null)
+            {
+                breaker.SwitchBreaker(!breaker.isPowerOn);
+                Plugin.LogMessage($"Turned breaker {(breaker.isPowerOn ? "on" : "off")}.");
+            }
+            else
+            {
+                Plugin.LogMessage("BreakerBox not found!", true);
+            }
+        }
+
+        private static void RandomTeleport()
+        {
+
         }
     }
 }
