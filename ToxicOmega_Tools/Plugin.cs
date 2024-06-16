@@ -631,7 +631,7 @@ namespace ToxicOmega_Tools
             }
         }
 
-        public static void SpawnItem(SearchableGameObject item, int amount, int value, string targetString)
+        public static void SpawnItem(SearchableGameObject item, int amount, int value, string targetString, bool deadMoney = false)
         {
             List<Item> allItemsList = StartOfRound.Instance.allItemsList.itemsList;
             if (GetPositionFromCommand(targetString, 0) == Vector3.zero)
@@ -650,6 +650,9 @@ namespace ToxicOmega_Tools
                     GameObject myItem = Instantiate(allItemsList[item.Id].spawnPrefab, position, Quaternion.identity);
                     myItem.GetComponent<GrabbableObject>().transform.rotation = Quaternion.Euler(myItem.GetComponent<GrabbableObject>().itemProperties.restingRotation);
                     myItem.GetComponent<GrabbableObject>().fallTime = 0f;
+                    if (deadMoney) {
+                        myItem.GetComponent<GrabbableObject>().itemProperties.weight = 5f;
+                    }
                     myItem.GetComponent<NetworkObject>().Spawn();
                     Networking.SyncScrapValueClientRpc(myItem.GetComponent<GrabbableObject>().NetworkObject, setValue);
                     if (allItemsList[item.Id].itemName == "Shotgun")

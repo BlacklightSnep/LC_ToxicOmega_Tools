@@ -3,8 +3,11 @@ using GameNetcodeStuff;
 using HarmonyLib;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 namespace ToxicOmega_Tools.Patches
 {
@@ -132,20 +135,68 @@ namespace ToxicOmega_Tools.Patches
 
         private static void CheckHotKey()
         {
+            // Spawn low level
+            if (UnityInput.Current.GetKeyUp(KeyCode.F5))
+            {
+                Plugin.keydebounce = 30;
+                SpawnRandomEnemy(false);
+                Plugin.LogMessage("Spawned a regular beast.");
+            }
+
+            // Spawn high level
+            if (UnityInput.Current.GetKeyUp(KeyCode.F6))
+            {
+                Plugin.keydebounce = 30;
+                SpawnRandomEnemy(true);
+                Plugin.LogMessage("Spawned a dangerous beast.");
+            }
+
+            // Dead Money
+            if (UnityInput.Current.GetKeyUp(KeyCode.F7))
+            {
+                Plugin.keydebounce = 30;
+                DeadMoney();
+                Plugin.LogMessage("Dead Money.");
+            }
+
+            // Lights on/lights off
             if (UnityInput.Current.GetKeyUp(KeyCode.F8))
             {
                 Plugin.keydebounce = 30;
-                //Plugin.LogMessage("You pressed F8! That's neat.");
                 ToggleBreaker();
             }
+
+            // Party time!
+            if (UnityInput.Current.GetKeyUp(KeyCode.F9))
+            {
+                Plugin.keydebounce = 30;
+                GatherAllPlayers();
+                Plugin.LogMessage("Party!");
+            }
+
+            // Chaos Reigns
+            if (UnityInput.Current.GetKeyUp(KeyCode.F10))
+            {
+                Plugin.keydebounce = 30;
+                
+                for (int i = 0; i < 10; i++) {
+                    SpawnRandomEnemy(true);
+                }
+
+                ReviveAllPlayers();
+            }
+
+            // Care package
+            if (UnityInput.Current.GetKeyUp(KeyCode.F11))
+            {
+                Plugin.keydebounce = 30;
+                CarePackage();
+                Plugin.LogMessage("Care Package.");
+            }
         }
-        
-        private static void HandleHotKey(KeyCode keyCode)
+
+        private static void ToggleBreaker()
         {
-
-        }
-
-        private static void ToggleBreaker() {
             BreakerBox breaker = FindObjectOfType<BreakerBox>();
             if (breaker != null)
             {
@@ -162,5 +213,143 @@ namespace ToxicOmega_Tools.Patches
         {
 
         }
+
+        private static void TeleportPlayer(PlayerControllerB playerToTeleport)
+        {
+
+        }
+
+        private static void GatherAllPlayers()
+        {
+            List<Item> allItemsList = StartOfRound.Instance.allItemsList.itemsList;
+            StartOfRound round = StartOfRound.Instance;
+
+            // Random.Range(0, (round.allPlayerScripts.Length - 1));
+            // Select a player at random
+            // 
+            // Grab the first player.
+            PlayerControllerB target = round.allPlayerScripts[0];
+
+            Vector3 destination = Plugin.GetPositionFromCommand("#0", 3);
+            for (int i = 1; i < round.allPlayerScripts.Length; i++)
+            {
+                if (StartOfRound.Instance.allPlayerScripts[i].isActiveAndEnabled)
+                {
+                    Networking.TPPlayerClientRpc((ulong)i, destination);
+                }
+            }
+
+            SearchableGameObject boombox = Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower().StartsWith("boombox"));
+            SearchableGameObject bottles = Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower().StartsWith("bottles"));
+            SearchableGameObject flashbang = Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower().StartsWith("homemade flashbang"));
+
+            Plugin.SpawnItem(boombox, 1, allItemsList[boombox.Id].maxValue, "#0");
+            Plugin.SpawnItem(bottles, 1, allItemsList[bottles.Id].maxValue, "#0");
+            Plugin.SpawnItem(flashbang, 4, allItemsList[flashbang.Id].maxValue, "#0");
+        }
+
+        private static void GiveItemToPlayer()
+        {
+
+        }
+
+        private static void SpawnRandomEnemy(bool highHazard)
+        {
+            Plugin.SpawnEnemy(SelectLevelledEnemy(highHazard), 1, "$");
+        }
+
+        private static void ReviveAllPlayers()
+        {
+            for (int i = 0; i < StartOfRound.Instance.allPlayerScripts.Length; i++)
+            {
+                //Plugin.RevivePlayer(StartOfRound.Instance.allPlayerScripts[i].playerClientId);
+                RevivePlayer(StartOfRound.Instance.allPlayerScripts[i]);
+            }
+        }
+
+        private static void CarePackage()
+        {
+            List<Item> allItemsList = StartOfRound.Instance.allItemsList.itemsList;
+            for (int i = 0; i < StartOfRound.Instance.allPlayerScripts.Length; i++)
+            {
+                if (StartOfRound.Instance.allPlayerScripts[i].isActiveAndEnabled)
+                {
+                    SearchableGameObject itemToSpawn = SelectRandomItem();
+                    Plugin.SpawnItem(itemToSpawn, 1, allItemsList[itemToSpawn.Id].maxValue, "#"+i);
+                }
+            }
+        }
+
+        private static void DeadMoney()
+        {
+            SearchableGameObject prefabFromString = Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower().StartsWith("gold bar"));
+            Plugin.SpawnItem(prefabFromString, 4, 210, "#0", true);
+        }
+
+        private static SearchableGameObject SelectRandomItem()
+        {
+            List<SearchableGameObject> allItems = Plugin.allSpawnablesList.Where(item => item.IsItem && (item.Name.ToLower() != "utility belt" && item.Name.ToLower() != "nokia 3310")).ToList();
+            int itemId = Random.Range(0, allItems.Count);
+            return allItems[itemId];
+        }
+
+        private static string[] lowLevelEnemies = new[] { "centipede", "bunker spider", "hoarding bug", "blob", "boomba", "immortalsnail" };
+        private static string[] highLevelEnemies = new[] { "nutcracker", "flowerman", "masked", "spring", "jester", "earth leviathan", "radmech" };
+
+        private static SearchableGameObject SelectLevelledEnemy(bool highHazard)
+        {
+            string[] enemyList = highHazard ? highLevelEnemies : lowLevelEnemies;
+            int enemyIndex = Random.Range(0, enemyList.Length);
+
+            return Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower() == enemyList[enemyIndex]);
+        }
+
+        private static SearchableGameObject SelectRandomEnemy()
+        {
+            List<SearchableGameObject> allItems = Plugin.allSpawnablesList.Where(item => item.IsEnemy).ToList();
+            int itemId = Random.Range(0, allItems.Count);
+            return allItems[itemId];
+        }
+
+        private static ulong GetRandomLivePlayerId()
+        {
+            List<PlayerControllerB> livePlayers = GetAllPlayers(false);
+            int playerId = Random.Range(0, livePlayers.Count);
+            return livePlayers[playerId].playerClientId;
+        }
+
+        // Need to work out how to target individual players for revive. Maybe just
+        // clone Instance.ReviveDeadPlayers targeting a single player?
+        // Check HealPlayerClientRpc - that should do it.
+        private static void RevivePlayer(PlayerControllerB playerToRevive) {
+            Networking.HealPlayerClientRpc(playerToRevive.playerClientId);
+        }
+        private static List<PlayerControllerB> GetAllPlayers(bool includeDead)
+        {
+            List<PlayerControllerB> allPlayers = StartOfRound.Instance.allPlayerScripts.ToList();
+            if (!includeDead)
+            {
+                List<PlayerControllerB> alivePlayers = new List<PlayerControllerB>();
+                foreach (PlayerControllerB player in allPlayers)
+                {
+                    if (!player.isPlayerDead)
+                    {
+                        alivePlayers.Add(player);
+                    }
+                }
+                allPlayers = alivePlayers;
+            }
+            return allPlayers;
+        }
     }
 }
+
+/**
+ $5 - Toggle breaker (Lights go on, lights go off) [done, tested]
+$10 - Spawn low hazard enemy at random on current player (Spider, baboon hawk, ghost girl, lootbug) [done, needs tested]
+$25 - Care Package (Every living player gets a random tool) [done, needs tested]
+$40 - Spawn a high hazard enemy at random on current player (Earth Leviathan, Nutcracker, Jester, Bracken, Butler, Giant, robot) [done, needs tested]
+$50 - DEAD MONEY (Spawn 4 gold bars that weigh 5x what they normally do) [done, weight is weird]
+$75 - PARTY TIME (Teleport all crewmates to one living crewmate selected at random. Summon a boombox and a crate of bottles) [done, test]
+$100 - CHAOS REIGNS (Revive all dead players, set weather to eclipsed, spawn four high hazard enemies) [partial]
+ */
