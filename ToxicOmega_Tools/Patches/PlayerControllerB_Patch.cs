@@ -133,6 +133,9 @@ namespace ToxicOmega_Tools.Patches
             //RenderSettings.fog = !Plugin.defog;
         }
 
+        /// <summary>
+        /// Checks if a hotkey is currently being pressed. If one is pressed, triggers the associated effect.
+        /// </summary>
         private static void CheckHotKey()
         {
             // Spawn low level
@@ -195,6 +198,9 @@ namespace ToxicOmega_Tools.Patches
             }
         }
 
+        /// <summary>
+        /// Toggles lights in the facility on or off.
+        /// </summary>
         private static void ToggleBreaker()
         {
             BreakerBox breaker = FindObjectOfType<BreakerBox>();
@@ -209,16 +215,9 @@ namespace ToxicOmega_Tools.Patches
             }
         }
 
-        private static void RandomTeleport()
-        {
-
-        }
-
-        private static void TeleportPlayer(PlayerControllerB playerToTeleport)
-        {
-
-        }
-
+        /// <summary>
+        /// Party time function. Teleports players to the host, spawns boombox, bottles and 4 flashbangs.
+        /// </summary>
         private static void GatherAllPlayers()
         {
             List<Item> allItemsList = StartOfRound.Instance.allItemsList.itemsList;
@@ -248,16 +247,20 @@ namespace ToxicOmega_Tools.Patches
             Plugin.SpawnItem(flashbang, 4, allItemsList[flashbang.Id].maxValue, "#0");
         }
 
-        private static void GiveItemToPlayer()
-        {
-
-        }
-
+        /// <summary>
+        /// Spawns a random enemy at a natural spawn point in the level.
+        /// </summary>
+        /// <param name="highHazard">If true, spawn an enemy from the high hazard list.</param>
         private static void SpawnRandomEnemy(bool highHazard)
         {
             Plugin.SpawnEnemy(SelectLevelledEnemy(highHazard), 1, "$");
         }
 
+        /// <summary>
+        /// Revives all players who still have a corpse instance. Does not work for players who died in a way
+        /// that doesn't leave a corpse.
+        /// Seems to be bugged - worked when testing with two players, but when testing with 7 it didn't work.
+        /// </summary>
         private static void ReviveAllPlayers()
         {
             for (int i = 0; i < StartOfRound.Instance.allPlayerScripts.Length; i++)
@@ -267,6 +270,9 @@ namespace ToxicOmega_Tools.Patches
             }
         }
 
+        /// <summary>
+        /// Summon a random item at the location of every player, living or dead.
+        /// </summary>
         private static void CarePackage()
         {
             List<Item> allItemsList = StartOfRound.Instance.allItemsList.itemsList;
@@ -280,12 +286,19 @@ namespace ToxicOmega_Tools.Patches
             }
         }
 
+        /// <summary>
+        /// Spawn four gold bars on the host's position.
+        /// </summary>
         private static void DeadMoney()
         {
             SearchableGameObject prefabFromString = Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower().StartsWith("gold bar"));
             Plugin.SpawnItem(prefabFromString, 4, 210, "#0", true);
         }
 
+        /// <summary>
+        /// Picks a random item from the game's item list.
+        /// </summary>
+        /// <returns>A random item.</returns>
         private static SearchableGameObject SelectRandomItem()
         {
             List<SearchableGameObject> allItems = Plugin.allSpawnablesList.Where(item => item.IsItem && (item.Name.ToLower() != "utility belt" && item.Name.ToLower() != "nokia 3310")).ToList();
@@ -293,9 +306,15 @@ namespace ToxicOmega_Tools.Patches
             return allItems[itemId];
         }
 
+        // These are the permitted spawns for low level and high level enemies.
         private static string[] lowLevelEnemies = new[] { "centipede", "bunker spider", "hoarding bug", "blob", "boomba", "immortalsnail" };
         private static string[] highLevelEnemies = new[] { "nutcracker", "flowerman", "masked", "spring", "jester", "earth leviathan", "radmech" };
 
+        /// <summary>
+        /// Picks an enemy at random from the high level or low level enemy list.
+        /// </summary>
+        /// <param name="highHazard">If true, picks an enemy from the high level list.</param>
+        /// <returns>An enemy of the specified level.</returns>
         private static SearchableGameObject SelectLevelledEnemy(bool highHazard)
         {
             string[] enemyList = highHazard ? highLevelEnemies : lowLevelEnemies;
@@ -304,6 +323,10 @@ namespace ToxicOmega_Tools.Patches
             return Plugin.allSpawnablesList.FirstOrDefault(obj => obj.Name.ToLower() == enemyList[enemyIndex]);
         }
 
+        /// <summary>
+        /// Picks an enemy at random from the game's enemy list.
+        /// </summary>
+        /// <returns>A random enemy.</returns>
         private static SearchableGameObject SelectRandomEnemy()
         {
             List<SearchableGameObject> allItems = Plugin.allSpawnablesList.Where(item => item.IsEnemy).ToList();
@@ -311,6 +334,10 @@ namespace ToxicOmega_Tools.Patches
             return allItems[itemId];
         }
 
+        /// <summary>
+        /// Gets the ID of a randomly selected player.
+        /// </summary>
+        /// <returns>The ID of a random player.</returns>
         private static ulong GetRandomLivePlayerId()
         {
             List<PlayerControllerB> livePlayers = GetAllPlayers(false);
@@ -321,9 +348,19 @@ namespace ToxicOmega_Tools.Patches
         // Need to work out how to target individual players for revive. Maybe just
         // clone Instance.ReviveDeadPlayers targeting a single player?
         // Check HealPlayerClientRpc - that should do it.
+        /// <summary>
+        /// Revives the specified player.
+        /// </summary>
+        /// <param name="playerToRevive">The controller for the player to revive.</param>
         private static void RevivePlayer(PlayerControllerB playerToRevive) {
             Networking.HealPlayerClientRpc(playerToRevive.playerClientId);
         }
+
+        /// <summary>
+        /// Retrieve a list of all connected players.
+        /// </summary>
+        /// <param name="includeDead">If true, includes players who are currently dead.</param>
+        /// <returns>A list of all connected players.</returns>
         private static List<PlayerControllerB> GetAllPlayers(bool includeDead)
         {
             List<PlayerControllerB> allPlayers = StartOfRound.Instance.allPlayerScripts.ToList();
@@ -343,13 +380,3 @@ namespace ToxicOmega_Tools.Patches
         }
     }
 }
-
-/**
- $5 - Toggle breaker (Lights go on, lights go off) [done, tested]
-$10 - Spawn low hazard enemy at random on current player (Spider, baboon hawk, ghost girl, lootbug) [done, needs tested]
-$25 - Care Package (Every living player gets a random tool) [done, needs tested]
-$40 - Spawn a high hazard enemy at random on current player (Earth Leviathan, Nutcracker, Jester, Bracken, Butler, Giant, robot) [done, needs tested]
-$50 - DEAD MONEY (Spawn 4 gold bars that weigh 5x what they normally do) [done, weight is weird]
-$75 - PARTY TIME (Teleport all crewmates to one living crewmate selected at random. Summon a boombox and a crate of bottles) [done, test]
-$100 - CHAOS REIGNS (Revive all dead players, set weather to eclipsed, spawn four high hazard enemies) [partial]
- */
